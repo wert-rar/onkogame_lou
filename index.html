@@ -75,7 +75,7 @@ main{padding-block:20px 48px}
 @media (max-width:560px){.clock{position:static;margin-bottom:-10px}}
 .field{display:grid;gap:8px}
 .lbl{font-size:13px;color:var(--muted)}
-.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.modes{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
 @media (max-width:640px){.modes{grid-template-columns:1fr}}
 .mode{text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:2px}
 .mode:hover{border-color:var(--gold)}
@@ -223,6 +223,44 @@ ol.src{margin:0;padding-left:18px;font-size:13px;color:var(--ink-2);display:grid
 .grp{margin:18px 0 8px}
 .err{font-size:14px;padding:8px 12px;border-radius:10px;background:var(--paper);border:1px solid var(--line)}
 
+/* неотложка */
+.em-card{display:grid;gap:12px}
+.em-card p{margin-top:2px}
+.em-clock{margin-left:auto;font:700 22px var(--f-mono);font-variant-numeric:tabular-nums}
+.mon{position:sticky;z-index:4;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;padding:8px;background:#0b1118;border-radius:14px;box-shadow:var(--shadow)}
+.mv{display:grid;padding:6px 8px;border-radius:10px;color:#7ef0a8;background:#121c27;min-width:0}
+.mv span,.mv small{font-size:11px;letter-spacing:.05em;color:#93a6ba;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv span{text-transform:uppercase}
+.mv b{font:700 22px/1.15 var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mv.crit{color:#ff7466;animation:blink 1s steps(2) infinite}
+.mv.crit small{color:#ff7466}
+@keyframes blink{50%{background:#3b1714}}
+@media (prefers-reduced-motion:reduce){.mv.crit{animation:none;background:#3b1714}}
+@media (max-width:420px){.mv b{font-size:18px}.mon{gap:4px;padding:6px}.mv{padding:5px 6px}}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.acts .opt{font-size:14px;padding:9px 10px}
+.em-dose{display:flex;align-items:center;gap:8px;font-size:14px;flex-wrap:wrap}
+.em-dose input{width:120px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:500 16px var(--f-mono);background:var(--paper);color:var(--ink)}
+.em-dose input.bad{border-color:var(--bad)}
+.tm{font:500 12px var(--f-mono);color:var(--muted);margin-right:6px;white-space:nowrap}
+.m-you .tm{color:inherit;opacity:.7}
+/* оценка по категориям */
+.cats{display:grid;gap:8px}
+.cat{display:grid;grid-template-columns:minmax(120px,170px) 1fr 34px;gap:10px;align-items:center;font-size:14px}
+.cbar{height:8px;border-radius:99px;background:var(--paper-2);border:1px solid var(--line);overflow:hidden}
+.cbar i{display:block;height:100%;background:var(--gold)}
+.cat b{font:500 14px var(--f-mono);text-align:right}
+
+/* расспрос */
+.hx-who{gap:6px}
+.hx-free{display:flex;gap:8px}
+.hx-free input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:14.5px;background:var(--paper);color:var(--ink)}
+
+/* расшифровка аббревиатур */
+abbr.ab{text-decoration:underline dotted;text-decoration-color:currentColor;text-underline-offset:3px;text-decoration-thickness:1px;cursor:help;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.abtip{position:fixed;z-index:30;max-width:min(320px,calc(100vw - 24px));background:var(--ink);color:var(--paper);font-size:13.5px;line-height:1.4;padding:8px 11px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.25);pointer-events:none}
+.abtip b{display:block;font-family:var(--f-mono);font-size:12.5px;opacity:.8}
+
 /* окно препарата */
 .overlay{position:fixed;inset:0;z-index:20;background:rgba(8,12,18,.5);display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
 @media (min-width:640px){.overlay{align-items:center}}
@@ -242,6 +280,7 @@ ol.src{margin:0;padding-left:18px;font-size:13px;color:var(--ink-2);display:grid
       <button data-go="smena">Смена</button>
       <button data-go="patients">Пациенты</button>
       <button data-go="blitz">Лечить или нет</button>
+      <button data-go="emerg">Неотложка</button>
       <button data-go="drugs">Препараты</button>
       <button data-go="progress">Прогресс</button>
     </nav>
@@ -253,6 +292,8 @@ ol.src{margin:0;padding-left:18px;font-size:13px;color:var(--ink-2);display:grid
 <script src="drugs.js"></script>
 <script src="cases-a.js"></script>
 <script src="cases-b.js"></script>
+<script src="emerg.js"></script>
+<script src="glossary.js"></script>
 <script>
 (function(){
 "use strict";
@@ -279,7 +320,7 @@ if (TG){
   theme();
   TG.onEvent("themeChanged", theme);
   if (tgAt("6.1")) TG.BackButton.onClick(() => {
-    if (C && C.si < C.steps.length && tgAt("6.2")) TG.showConfirm("Выйти из случая? Результат по нему не сохранится.", ok => { if (ok) go("smena"); });
+    if (((C && C.si < C.steps.length) || (E && !E.st.end)) && tgAt("6.2")) TG.showConfirm("Выйти? Результат не сохранится.", ok => { if (ok) go("smena"); });
     else go("smena");
   });
   TG.ready();
@@ -288,15 +329,24 @@ if (TG){
 
 /* ---------- хранение прогресса (только в этом браузере) ---------- */
 const KEY = "onkodezhurstvo.v1";
-const fresh = () => ({cases:{}, blitz:{best:0, plays:0}, quiz:{best:0, plays:0}, errors:[]});
+const fresh = () => ({cases:{}, blitz:{best:0, plays:0}, quiz:{best:0, plays:0}, emerg:{}, cats:{}, errors:[]});
 let S;
 try { S = JSON.parse(localStorage.getItem(KEY)) || fresh(); if (!S.cases) S = fresh(); } catch (e) { S = fresh(); }
+if (!S.emerg) S.emerg = {};
+if (!S.cats) S.cats = {};
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const logErr = t => { S.errors.unshift({t, ts:Date.now()}); S.errors = S.errors.slice(0, 40); save(); };
 
 /* ---------- утилиты ---------- */
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const br = s => esc(s).replace(/\n/g, "<br>");
+/* Расшифровка аббревиатур (glossary.js): tx() — esc() + разметка сокращений для текста на экране.
+   В атрибуты (data-*, aria-label, value) по-прежнему идёт esc(). */
+const AB = window.ABBR || {};
+const abRe = new RegExp("(?<![\\p{L}\\p{N}])(" + Object.keys(AB).sort((a, b) => b.length - a.length)
+  .map(k => k.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&")).join("|") + ")(?![\\p{L}\\p{N}])", "gu");
+const abbr = html => html.replace(abRe, m => `<abbr class="ab" title="${esc(AB[m])}">${m}</abbr>`);
+const tx = s => abbr(esc(s));
+const br = s => abbr(esc(s).replace(/\n/g, "<br>"));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const bsa = (w, h) => Math.sqrt(w * h / 3600); // формула Мостеллера
@@ -304,13 +354,14 @@ const comma = n => String(n).replace(".", ",");
 const RU = {ok:"В РФ зарегистрирован", no:"В РФ не зарегистрирован", off:"В РФ — вне инструкции", check:"Регистрацию уточнить"};
 const G = {lab:"Лаборатория", img:"Визуализация", inv:"Пункции и биопсии", cons:"Прочее"};
 const WHO = {nurse:"Медсестра", mom:"Мама", dad:"Папа", lab:"Лаборатория", img:"Лучевая диагностика", path:"Морфология", cons:"Консультант", boss:"Заведующая", exam:"Осмотр", sys:"", you:"", report:""};
-const VERD = {need:["ok","Нужно"], ok:["mid","Уместно"], no:["warn","Лишнее"], harm:["bad","Опасно"], miss:["bad","Пропущено"]};
+const VERD = {need:["ok","Нужно"], ok:["mid","Уместно"], no:["warn","Лишнее"], harm:["bad","Опасно"], miss:["bad","Пропущено"], whom:["warn","Не тот собеседник"]};
 
 /* ---------- навигация ---------- */
 let C = null, B = null, Q = null, homeCat = "Все", dFilter = {q:"", g:"all"};
-const VIEWS = {smena:renderHome, patients:renderList, blitz:startBlitz, drugs:renderDrugs, progress:renderProgress};
+const VIEWS = {smena:renderHome, patients:renderList, blitz:startBlitz, emerg:renderEmerg, drugs:renderDrugs, progress:renderProgress};
 function go(v){
   C = null;
+  stopEmerg();
   if (!VIEWS[v]) v = "smena";
   document.querySelectorAll(".nav button").forEach(b => b.setAttribute("aria-current", b.dataset.go === v ? "page" : "false"));
   tgBack(v !== "smena");
@@ -338,6 +389,7 @@ function renderHome(){
   <section class="modes">
     <button class="mode" data-go="patients"><span class="mode-n">${CS.length}</span><span class="mode-t">Пациенты</span><span class="mode-d">Любой случай отдельно — опухоли и их «двойники»</span></button>
     <button class="mode" data-go="blitz"><span class="mode-n">${BL.length}</span><span class="mode-t">Лечить или нет</span><span class="mode-d">Быстрые решения у постели больного</span></button>
+    <button class="mode" data-go="emerg"><span class="mode-n">${ER.length}</span><span class="mode-t">Неотложка</span><span class="mode-d">Мини-игра на время: монитор, дозы, решения за секунды</span></button>
     <button class="mode" data-go="drugs"><span class="mode-n">${DR.length}</span><span class="mode-t">Препараты</span><span class="mode-d">Механизм, токсичность, защита, доступность в РФ</span></button>
   </section>
   <aside class="note">
@@ -353,10 +405,13 @@ function startShift(){
 
 /* ---------- случай ---------- */
 function startCase(cs, shift){
+  stopEmerg();
   const tests = shuffle(cs.tests.map((t, i) => ({t, i})));
-  C = {cs, shift, status:80, score:0, tests:tests.map(x => x.t), ordered:[], si:-1, group:null,
-       steps:cs.steps.map(st => Object.assign({}, st, {o:shuffle(st.o)}))};
-  C.max = cs.tests.filter(t => t[3] === "need").length * 2 + cs.steps.reduce((a, st) => a + (st.t === "single" ? 5 : st.o.filter(o => o[1]).length * 2), 0);
+  C = {cs, shift, status:80, score:0, tests:tests.map(x => x.t), ordered:[], si:-1, group:null, res:[],
+       steps:cs.steps.map(st => Object.assign({}, st, st.t === "talk" ? {turns:st.turns.map(tn => Object.assign({}, tn, {o:shuffle(tn.o)}))} : {o:shuffle(st.o)}))};
+  C.max = cs.tests.filter(t => t[3] === "need").length * 2 +
+    cs.steps.reduce((a, st) => a + (st.t === "single" ? 5 : st.t === "talk" ? st.turns.length * 2 : st.o.filter(o => o[1]).length * 2), 0) +
+    (cs.hx ? cs.hx.q.filter(q => q.v === "need").length * 2 : 0);
   C.group = Object.keys(G).find(g => C.tests.some(t => t[0] === g));
   const p = cs.p;
   setNav(shift ? "smena" : "patients");
@@ -379,6 +434,11 @@ function startCase(cs, shift){
   const dock = document.getElementById("dock");
   updBand();
   say("sys", cs.from);
+  if (cs.hx){
+    C.hx = {asked:[], who:Object.keys(cs.hx.people)[0], g:cs.hx.q[0].g};
+    cs.hx.open.forEach(m => say(m[0], m[1]));
+    return dockHx();
+  }
   cs.intro.forEach(m => say(m[0], m[1]));
   dock.innerHTML = `<div class="dock-f"><button class="btn primary" id="exBtn">Осмотреть пациента</button></div>`;
 }
@@ -397,7 +457,8 @@ function say(who, html, raw){
 function reveal(el){
   requestAnimationFrame(() => {
     const dock = document.getElementById("dock"), top = document.querySelector(".top");
-    const lo = innerHeight - (dock ? dock.offsetHeight : 0) - 16, hi = (top ? top.offsetHeight : 0) + 16;
+    const mon = document.getElementById("mon");
+    const lo = innerHeight - (dock ? dock.offsetHeight : 0) - 16, hi = (top ? top.offsetHeight : 0) + (mon ? mon.offsetHeight + 10 : 0) + 16;
     const r = el.getBoundingClientRect();
     // длинный ответ показываем с начала, короткий прижимаем к панели
     const dy = r.height > lo - hi ? r.top - hi : r.bottom - lo;
@@ -422,6 +483,74 @@ function updBand(){
   document.getElementById("sbarw").setAttribute("aria-label", "Состояние пациента: " + C.status + " из 100");
   document.getElementById("pts").textContent = C.score;
 }
+/* ---------- расспрос: анамнез собирает сам игрок ----------
+   case.hx: open — с чего начинается, people — кого можно спросить, limit — сколько вопросов успеваете,
+   q — вопросы {g группа, t текст, kw ключевые слова для своего вопроса, v need/ok/no, a ответы по говорящим, c зачем}. */
+const norm = s => s.toLowerCase().replace(/ё/g, "е");
+function dockHx(){
+  const hx = C.cs.hx, left = hx.limit - C.hx.asked.length, who = C.hx.who;
+  const done = i => C.hx.asked.some(a => a.i === i && a.who === who);
+  document.getElementById("dock").innerHTML = `
+    <div class="dock-h"><span>Расспрос</span><span class="muted">вопросов осталось: ${left}</span></div>
+    <div class="row hx-who"><span class="lbl">Спросить:</span>${Object.entries(hx.people).map(([w, l]) => `<button class="chip" data-hw="${w}" aria-pressed="${w === who}">${esc(l)}</button>`).join("")}</div>
+    <div class="hx-free"><input id="hxIn" type="text" placeholder="Свой вопрос…" autocomplete="off" aria-label="Свой вопрос" ${left ? "" : "disabled"}><button class="btn" id="hxAsk" ${left ? "" : "disabled"}>Спросить</button></div>
+    <div class="tabs" role="tablist">${[...new Set(hx.q.map(q => q.g))].map(g => `<button role="tab" data-hg="${esc(g)}" aria-selected="${g === C.hx.g}">${esc(g)}</button>`).join("")}</div>
+    <div class="opts">${hx.q.map((q, i) => q.g !== C.hx.g ? "" : `<button class="opt" data-hq="${i}" ${done(i) || !left ? "disabled" : ""}>${done(i) ? "✓ " : ""}${tx(q.t)}</button>`).join("")}</div>
+    <div class="dock-f"><button class="btn primary" id="hxDone">Достаточно — к осмотру →</button></div>`;
+}
+function askHx(i, text){
+  const q = C.cs.hx.q[i], who = C.hx.who;
+  if (C.hx.asked.length >= C.cs.hx.limit) return;
+  say("you", text || q.t);
+  if (C.hx.asked.some(a => a.i === i && a.who === who)){ say("sys", "Вы уже об этом спрашивали."); return dockHx(); }
+  const a = q.a[who] || "~…";
+  say(who, a.replace(/^~/, ""));
+  C.hx.asked.push({i, who, info:!a.startsWith("~")});
+  dockHx();
+}
+function askFree(){
+  const inp = document.getElementById("hxIn"), raw = inp.value.trim(), s = norm(raw);
+  if (!s) return inp.focus();
+  let best = -1, hits = 0;
+  C.cs.hx.q.forEach((q, i) => { const n = q.kw.filter(k => s.includes(norm(k))).length; if (n > hits){ hits = n; best = i; } });
+  if (best < 0){ say("you", raw); say(C.hx.who, "Не поняла вопрос. Спросите по-другому?".replace("поняла", C.hx.who === "pt" ? "понял" : "поняла")); return dockHx(); }
+  askHx(best, raw);
+}
+/* итог расспроса: по вопросу — лучший ответ из полученных */
+function hxRows(){
+  const hx = C.cs.hx, rows = [];
+  hx.q.forEach((q, i) => {
+    const got = C.hx.asked.filter(a => a.i === i);
+    if (got.length) rows.push([q.v === "need" && !got.some(a => a.info) ? "whom" : q.v, q]);
+    else if (q.v === "need") rows.push(["miss", q]);
+  });
+  return rows;
+}
+
+/* ---------- разговор: сообщить диагноз (SPIKES) ---------- */
+function talkTurn(){
+  const st = C.steps[C.si], tn = st.turns[C.tk];
+  if (tn.pre) say(tn.pre[0], tn.pre[1]);
+  ask(`${st.h} · ${tn.stage}`, tn.q);
+  document.getElementById("dock").innerHTML = `<div class="opts">${tn.o.map((o, i) => `<button class="opt" data-tk="${i}">${tx(o[0])}</button>`).join("")}</div>`;
+}
+function answerTalk(i){
+  const st = C.steps[C.si], tn = st.turns[C.tk], o = tn.o[i], best = tn.o.reduce((a, x) => x[1] > a[1] ? x : a);
+  say("you", o[0]);
+  say(st.who, o[2]);
+  C.score += o[1];
+  C.res.push({cat:"Коммуникация", got:Math.max(0, o[1]), max:2});
+  buzz(o[1] > 0);
+  if (o[1] < 0) logErr(`${C.cs.p.n} · ${st.h}, ${tn.stage}: «${o[0]}»`);
+  const pill = o[1] === 2 ? ["ok", "Хорошо"] : o[1] === 1 ? ["warn", "Допустимо"] : o[1] === 0 ? ["warn", "Можно лучше"] : ["bad", "Ошибка"];
+  let h = `<span class="pill ${pill[0]}">${pill[1]} · ${esc(tn.stage)}</span><p>${br(o[3])}</p>`;
+  if (o[1] < 2) h += `<p><b>Лучше:</b> ${tx(best[0])}</p><p>${br(best[3])}</p>`;
+  say("boss", h, true);
+  updBand();
+  C.tk++;
+  document.getElementById("dock").innerHTML = `<div class="dock-f"><button class="btn primary" id="${C.tk < st.turns.length ? "tkNext" : "nextStep"}">Дальше →</button></div>`;
+}
+
 function examine(){
   say("you", "Осматриваю пациента.");
   C.cs.exam.forEach(m => say(m[0] === "sys" ? "exam" : m[0], m[1]));
@@ -433,7 +562,7 @@ function dockWorkup(){
   document.getElementById("dock").innerHTML = `
     <div class="dock-h"><span>Назначить обследование</span><span class="muted">назначено: ${C.ordered.length}</span></div>
     <div class="tabs" role="tablist">${groups.map(g => `<button role="tab" data-g="${g}" aria-selected="${g === C.group}">${G[g]} <small>${left(g)}</small></button>`).join("")}</div>
-    <div class="opts">${C.tests.map((t, i) => t[0] !== C.group ? "" : `<button class="opt" data-t="${i}" ${C.ordered.includes(i) ? "disabled" : ""}>${C.ordered.includes(i) ? "✓ " : ""}${esc(t[1])}</button>`).join("")}</div>
+    <div class="opts">${C.tests.map((t, i) => t[0] !== C.group ? "" : `<button class="opt" data-t="${i}" ${C.ordered.includes(i) ? "disabled" : ""}>${C.ordered.includes(i) ? "✓ " : ""}${tx(t[1])}</button>`).join("")}</div>
     <div class="dock-f"><button class="btn primary" id="toSteps">Достаточно — к диагнозу →</button></div>`;
 }
 function orderTest(i){
@@ -456,25 +585,30 @@ function nextStep(){
   if (C.si >= C.steps.length) return finishCase();
   const st = C.steps[C.si];
   if (st.pre) say(st.pre[0], st.pre[1]);
+  if (st.t === "talk"){ C.tk = 0; return talkTurn(); }
   ask(st.h, st.q + (st.t === "multi" ? "\n(можно выбрать несколько)" : ""));
   const dock = document.getElementById("dock");
   if (st.t === "single"){
-    dock.innerHTML = `<div class="opts">${st.o.map((o, i) => `<button class="opt" data-i="${i}">${esc(o[0])}</button>`).join("")}</div>`;
+    dock.innerHTML = `<div class="opts">${st.o.map((o, i) => `<button class="opt" data-i="${i}">${tx(o[0])}</button>`).join("")}</div>`;
   } else {
-    dock.innerHTML = `<div class="opts">${st.o.map((o, i) => `<button class="opt" data-m="${i}" aria-pressed="false">${esc(o[0])}</button>`).join("")}</div>
+    dock.innerHTML = `<div class="opts">${st.o.map((o, i) => `<button class="opt" data-m="${i}" aria-pressed="false">${tx(o[0])}</button>`).join("")}</div>
       <div class="dock-f"><button class="btn primary" id="confirmMulti">Подтвердить выбор</button></div>`;
   }
 }
 const isDx = st => /^Диагноз/.test(st.h);
+/* категория шага для оценки «как на олимпиаде» */
+const stepCat = st => st.t === "talk" ? "Коммуникация" : isDx(st) ? "Диагноз" : /^(Препараты|Взаимодействия)/.test(st.h) ? "Препараты" : "Тактика и лечение";
+const CATS = ["Анамнез", "Обследование", "Диагноз", "Тактика и лечение", "Препараты", "Коммуникация", "Безопасность"];
 function answerSingle(i){
   const st = C.steps[C.si], o = st.o[i], right = st.o.find(x => x[1]);
   say("you", o[0]);
   buzz(o[1]);
+  C.res.push({cat:stepCat(st), got:o[1] ? 1 : 0, max:1});
   if (o[1]) C.score += 5;
   else { setStatus(isDx(st) ? -10 : -5); logErr(`${C.cs.p.n} · ${st.h}: выбрано «${o[0]}», верно — «${right[0]}»`); }
   let h = `<span class="pill ${o[1] ? "ok" : "bad"}">${o[1] ? "Верно" : "Неверно"}</span><p>${br(o[2])}</p>`;
-  if (!o[1]) h += `<p><b>Правильно:</b> ${esc(right[0])}</p><p>${br(right[2])}</p>`;
-  h += `<details><summary>Разбор всех вариантов</summary><ul class="why">${st.o.map(x => `<li class="${x[1] ? "is-ok" : "is-bad"}"><span class="mk">${x[1] ? "✓" : "✗"}</span><b>${esc(x[0])}</b><br>${br(x[2])}</li>`).join("")}</ul></details>`;
+  if (!o[1]) h += `<p><b>Правильно:</b> ${tx(right[0])}</p><p>${br(right[2])}</p>`;
+  h += `<details><summary>Разбор всех вариантов</summary><ul class="why">${st.o.map(x => `<li class="${x[1] ? "is-ok" : "is-bad"}"><span class="mk">${x[1] ? "✓" : "✗"}</span><b>${tx(x[0])}</b><br>${br(x[2])}</li>`).join("")}</ul></details>`;
   say("boss", h, true);
   updBand();
   dockNext();
@@ -491,9 +625,11 @@ function answerMulti(){
     if (!on && o[1]){ C.score -= 1; miss++; return ["is-miss", "○ Пропущено", o]; }
     return ["is-neutral", "— Верно не выбрано", o];
   });
+  const right = st.o.filter(o => o[1]).length;
+  C.res.push({cat:stepCat(st), got:Math.max(0, right - miss - bad), max:right});
   const pill = bad ? ["bad", "Есть ошибки"] : miss ? ["warn", "Частично"] : ["ok", "Верно"];
   buzz(!bad);
-  say("boss", `<span class="pill ${pill[0]}">${pill[1]}</span><ul class="why">${items.map(x => `<li class="${x[0]}"><span class="mk">${x[1]}</span><b>${esc(x[2][0])}</b><br>${br(x[2][2])}</li>`).join("")}</ul>`, true);
+  say("boss", `<span class="pill ${pill[0]}">${pill[1]}</span><ul class="why">${items.map(x => `<li class="${x[0]}"><span class="mk">${x[1]}</span><b>${tx(x[2][0])}</b><br>${br(x[2][2])}</li>`).join("")}</ul>`, true);
   updBand();
   dockNext();
 }
@@ -502,28 +638,57 @@ function finishCase(){
   const cs = C.cs;
   const missed = C.tests.map((t, i) => [t, i]).filter(([t, i]) => t[3] === "need" && !C.ordered.includes(i)).map(x => x[0]);
   C.score -= missed.length * 2;
+  const hxr = cs.hx ? hxRows() : [];
+  C.score += hxr.filter(r => r[0] === "need").length * 2 - hxr.filter(r => r[0] === "no").length;
   updBand();
   const pct = Math.max(0, Math.round(C.score / C.max * 100));
   const outcome = C.status >= 70 ? "стабилен" : C.status >= 40 ? "осложнения" : "реанимация";
   const rec = S.cases[cs.id] || {best:0, plays:0};
   S.cases[cs.id] = {best:Math.max(rec.best, pct), plays:rec.plays + 1, last:pct};
   save();
-  if (C.shift) C.shift.results.push({cs, pct, status:C.status, outcome});
+  const cats = caseCats(hxr);
+  cats.forEach(([n, v]) => { const a = S.cats[n] || {sum:0, n:0}; S.cats[n] = {sum:a.sum + v, n:a.n + 1}; });
+  save();
+  if (C.shift) C.shift.results.push({cs, pct, status:C.status, outcome, cats});
   const rows = C.ordered.map(i => C.tests[i]).map(t => [t[3], t]).concat(missed.map(t => ["miss", t]));
   const html = `
     <p class="eyebrow">Разбор случая</p>
-    <h2>${esc(cs.dx)}</h2>
+    <h2>${tx(cs.dx)}</h2>
     <div class="rep-k"><div><b>${pct}%</b><span>результат</span></div><div><b>${C.status}</b><span>состояние</span></div><div><b>${outcome}</b><span>исход смены</span></div></div>
+    <h3>Оценка по категориям</h3>${catsHtml(cats)}
+    ${hxr.length ? `<h3>Анамнез</h3>
+    <div class="tbl"><table><tbody>${hxr.map(([v, q]) => `<tr><td><span class="pill ${VERD[v][0]}">${VERD[v][1]}</span></td><td>${tx(q.t)}<div class="c">${tx(q.c)}</div></td></tr>`).join("")}</tbody></table></div>
+    <p class="muted" style="margin-top:8px;font-size:13.5px">Полностью: ${tx(cs.intro.map(m => m[1]).join(" "))}</p>` : ""}
     <h3>Обследование</h3>
-    <div class="tbl"><table><tbody>${rows.map(([v, t]) => `<tr><td><span class="pill ${VERD[v][0]}">${VERD[v][1]}</span></td><td>${esc(t[1])}<div class="c">${esc(t[4])}</div></td></tr>`).join("")}</tbody></table></div>
-    <h3>Запомнить</h3><ul class="pearls">${cs.pearls.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+    <div class="tbl"><table><tbody>${rows.map(([v, t]) => `<tr><td><span class="pill ${VERD[v][0]}">${VERD[v][1]}</span></td><td>${tx(t[1])}<div class="c">${tx(t[4])}</div></td></tr>`).join("")}</tbody></table></div>
+    <h3>Запомнить</h3><ul class="pearls">${cs.pearls.map(x => `<li>${tx(x)}</li>`).join("")}</ul>
     ${cs.drugs.length ? `<h3>Препараты случая</h3><div class="chips">${cs.drugs.map(id => `<button class="chip" data-drug="${id}">${esc(byId[id].n)}${byId[id].ru.s !== "ok" ? " ⚑" : ""}</button>`).join("")}</div>` : ""}
-    <h3>Источники</h3><ol class="src">${cs.src.map(x => `<li>${esc(x)}</li>`).join("")}</ol>`;
+    <h3>Источники</h3><ol class="src">${cs.src.map(x => `<li>${tx(x)}</li>`).join("")}</ol>`;
   say("report", html, true);
   const sh = C.shift;
   document.getElementById("dock").innerHTML = `<div class="dock-f">${
     sh ? (sh.i + 1 < sh.list.length ? `<button class="btn primary" id="nextPatient">Следующий пациент →</button>` : `<button class="btn primary" id="shiftReport">Сдать смену</button>`)
        : `<button class="btn" data-go="patients">К списку</button><button class="btn primary" id="randomCase">Случайный пациент</button>`}</div>`;
+}
+/* оценка случая по категориям, 0–100 */
+function caseCats(hxr){
+  const ord = C.ordered.map(i => C.tests[i]), cnt = v => ord.filter(t => t[3] === v).length;
+  const need = C.tests.filter(t => t[3] === "need").length;
+  const out = [["Обследование", need ? (cnt("need") + cnt("ok") * 0.5 - cnt("no") * 0.5 - cnt("harm")) / need * 100 : 100]];
+  if (C.cs.hx){
+    const k = v => hxr.filter(r => r[0] === v).length, all = C.cs.hx.q.filter(q => q.v === "need").length;
+    out.unshift(["Анамнез", (k("need") + k("whom") * 0.5 - k("no") * 0.5) / all * 100]);
+  }
+  for (const n of ["Диагноз", "Тактика и лечение", "Препараты", "Коммуникация"]){
+    const r = C.res.filter(x => x.cat === n);
+    if (r.length) out.push([n, r.reduce((a, x) => a + x.got, 0) / r.reduce((a, x) => a + x.max, 0) * 100]);
+  }
+  out.push(["Безопасность", 100 - cnt("harm") * 50]);
+  return out.map(([n, v]) => [n, Math.max(0, Math.min(100, Math.round(v))), 1]);
+}
+/* средние по категориям из списка оценок [[[название, балл], …], …] */
+function avgCats(list){
+  return CATS.map(n => { const v = list.map(c => (c.find(x => x[0] === n) || [])[1]).filter(x => x !== undefined); return v.length ? [n, Math.round(v.reduce((a, b) => a + b, 0) / v.length), 1] : null; }).filter(Boolean);
 }
 function shiftReport(sh){
   setNav("smena");
@@ -532,19 +697,22 @@ function shiftReport(sh){
   app.innerHTML = `
   <section class="page-h"><p class="eyebrow">Смена сдана</p><h1>Средний результат — ${avg}%</h1>
   <p class="lede">${avg >= 80 ? "Сильная смена: дети стабильны, назначения точные." : avg >= 55 ? "Неплохо, но есть пробелы — посмотрите разборы и ошибки в «Прогрессе»." : "Тяжёлая смена. Вернитесь к разборам и к справочнику препаратов."}</p></section>
-  <div class="list">${sh.results.map(r => `<button class="case-row" data-case="${r.cs.id}"><span class="cn">${esc(r.cs.p.n)}, ${esc(r.cs.p.age)}</span><span class="cc">${esc(r.cs.dx)}</span><span class="cd">исход: ${r.outcome} · состояние ${r.status}</span><span class="cs">${r.pct}%</span></button>`).join("")}</div>
+  <h3 class="grp eyebrow">По категориям</h3>${catsHtml(avgCats(sh.results.map(r => r.cats)))}
+  <h3 class="grp eyebrow">Пациенты смены</h3>
+  <div class="list">${sh.results.map(r => `<button class="case-row" data-case="${r.cs.id}"><span class="cn">${esc(r.cs.p.n)}, ${esc(r.cs.p.age)}</span><span class="cc">${tx(r.cs.dx)}</span><span class="cd">исход: ${r.outcome} · состояние ${r.status}</span><span class="cs">${r.pct}%</span></button>`).join("")}</div>
   <div class="row" style="margin-top:16px"><button class="btn primary" id="startShift">Новая смена</button><button class="btn" data-go="progress">Мои ошибки</button></div>`;
   window.scrollTo(0, 0);
 }
 
 /* ---------- список пациентов ---------- */
 function renderList(){
-  const cats = [...new Set(CS.map(c => c.cat))];
-  app.innerHTML = `<section class="page-h"><h1>Пациенты</h1><p class="lede">Диагноз скрыт, пока вы не пройдёте случай. Злокачественные опухоли перемешаны с состояниями, которые их имитируют.</p></section>
-  ${cats.map(cat => `<h3 class="grp eyebrow">${esc(cat)}</h3><div class="list">${CS.filter(c => c.cat === cat).map(c => {
+  // без разделов по категориям: категория подсказывает диагноз (отзыв врачей)
+  const list = CS.slice().sort((a, b) => a.p.n.localeCompare(b.p.n, "ru"));
+  app.innerHTML = `<section class="page-h"><h1>Пациенты</h1><p class="lede">Только имя, возраст и жалоба. Диагноз откроется, когда пройдёте случай. Опухоли перемешаны с состояниями, которые их имитируют.</p></section>
+  <div class="list">${list.map(c => {
     const r = S.cases[c.id];
-    return `<button class="case-row" data-case="${c.id}"><span class="cn">${esc(c.p.n)}, ${esc(c.p.age)}</span><span class="cc">${esc(c.cc)}</span>${r ? `<span class="cd">${esc(c.dx)}</span>` : ""}<span class="cs">${r ? r.best + "%" : "—"}</span></button>`;
-  }).join("")}</div>`).join("")}`;
+    return `<button class="case-row" data-case="${c.id}"><span class="cn">${esc(c.p.n)}, ${esc(c.p.age)}</span><span class="cc">${tx(c.cc)}</span>${r ? `<span class="cd">${tx(c.dx)}</span>` : ""}<span class="cs">${r ? r.best + "%" : "—"}</span></button>`;
+  }).join("")}</div>`;
 }
 
 /* ---------- лечить или нет ---------- */
@@ -554,7 +722,7 @@ function blitzQ(){
   app.innerHTML = `<section class="blitz">
     <div class="blitz-top"><span class="eyebrow">Лечить или нет</span><span class="count">${B.i + 1} / ${B.items.length} · верно ${B.score}</span></div>
     <div class="progress"><i style="width:${B.i / B.items.length * 100}%"></i></div>
-    <article class="card situation"><p>${esc(it.q)}</p></article>
+    <article class="card situation"><p>${tx(it.q)}</p></article>
     <div class="yn"><button class="btn yes" data-a="1">Делать</button><button class="btn no" data-a="0">Не делать</button></div>
     <div id="bfb"></div></section>`;
 }
@@ -563,7 +731,7 @@ function blitzAnswer(a){
   buzz(ok);
   if (ok) B.score++; else { B.wrong.push(it); logErr("Лечить или нет: " + it.q); }
   document.querySelectorAll(".yn .btn").forEach(b => { b.disabled = true; if (+b.dataset.a === a) b.classList.add("chosen"); });
-  document.getElementById("bfb").innerHTML = `<div class="card"><span class="pill ${ok ? "ok" : "bad"}">${ok ? "Верно" : "Неверно"} · правильно: ${it.a ? "делать" : "не делать"}</span><p>${esc(it.why)}</p>
+  document.getElementById("bfb").innerHTML = `<div class="card"><span class="pill ${ok ? "ok" : "bad"}">${ok ? "Верно" : "Неверно"} · правильно: ${it.a ? "делать" : "не делать"}</span><p>${tx(it.why)}</p>
     <div class="dock-f" style="margin-top:12px"><button class="btn primary" id="bnext">${B.i + 1 < B.items.length ? "Дальше →" : "Итоги"}</button></div></div>`;
   document.getElementById("bnext").focus();
 }
@@ -571,20 +739,20 @@ function blitzEnd(){
   S.blitz.plays++; S.blitz.best = Math.max(S.blitz.best, B.score); save();
   app.innerHTML = `<section class="page-h"><p class="eyebrow">Лечить или нет</p><h1>${B.score} из ${B.items.length}</h1>
     <p class="lede">${B.wrong.length ? "Ошибки этого раунда:" : "Без ошибок."}</p></section>
-    <div class="list">${B.wrong.map(it => `<div class="card"><p><b>${esc(it.q)}</b></p><p class="muted" style="margin-top:6px">Правильно: ${it.a ? "делать" : "не делать"}. ${esc(it.why)}</p></div>`).join("")}</div>
+    <div class="list">${B.wrong.map(it => `<div class="card"><p><b>${tx(it.q)}</b></p><p class="muted" style="margin-top:6px">Правильно: ${it.a ? "делать" : "не делать"}. ${tx(it.why)}</p></div>`).join("")}</div>
     <div class="row" style="margin-top:16px"><button class="btn primary" id="bagain">Ещё раунд</button><button class="btn" data-go="drugs">К препаратам</button></div>`;
   window.scrollTo(0, 0);
 }
 
 /* ---------- препараты ---------- */
 function drugBody(d){
-  return `<div><h4>Группа</h4>${esc(d.cls)}</div>
-  <div><h4>Механизм</h4>${esc(d.mech)}</div>
-  <div><h4>Где применяется</h4>${esc(d.use)}</div>
-  <div><h4>Дозы в протоколах</h4><span class="dose">${esc(d.dose)}</span></div>
-  <div><h4>Токсичность</h4><ul>${d.tox.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>
-  <div><h4>Профилактика и что важно</h4>${esc(d.guard)}</div>
-  <div class="ru-box"><span class="badge ru-${d.ru.s}">${RU[d.ru.s]}</span><p style="margin-top:6px">${esc(d.ru.t)}</p>${d.rep ? `<p class="rep"><b>Замена / как поступают:</b> ${esc(d.rep)}.</p>` : ""}</div>`;
+  return `<div><h4>Группа</h4>${tx(d.cls)}</div>
+  <div><h4>Механизм</h4>${tx(d.mech)}</div>
+  <div><h4>Где применяется</h4>${tx(d.use)}</div>
+  <div><h4>Дозы в протоколах</h4><span class="dose">${tx(d.dose)}</span></div>
+  <div><h4>Токсичность</h4><ul>${d.tox.map(t => `<li>${tx(t)}</li>`).join("")}</ul></div>
+  <div><h4>Профилактика и что важно</h4>${tx(d.guard)}</div>
+  <div class="ru-box"><span class="badge ru-${d.ru.s}">${RU[d.ru.s]}</span><p style="margin-top:6px">${tx(d.ru.t)}</p>${d.rep ? `<p class="rep"><b>Замена / как поступают:</b> ${tx(d.rep)}.</p>` : ""}</div>`;
 }
 function renderDrugs(){
   setNav("drugs");
@@ -601,7 +769,7 @@ function drugList(){
   const q = dFilter.q.trim().toLowerCase();
   const list = DR.filter(d => (dFilter.g === "all" || (dFilter.g === "ru" ? d.ru.s !== "ok" : d.g === dFilter.g)) &&
     (!q || [d.n, d.en, d.cls, d.key, d.use, d.tox.join(" "), d.guard].join(" ").toLowerCase().includes(q)));
-  document.getElementById("dlist").innerHTML = list.length ? list.map(d => `<details class="drug" id="d-${d.id}"><summary><span class="dn">${esc(d.n)}</span><span class="badge ru-${d.ru.s}">${RU[d.ru.s]}</span><span class="dc">${esc(d.cls)}</span><span class="dk">${esc(d.key)}</span></summary><div class="dbody">${drugBody(d)}</div></details>`).join("")
+  document.getElementById("dlist").innerHTML = list.length ? list.map(d => `<details class="drug" id="d-${d.id}"><summary><span class="dn">${esc(d.n)}</span><span class="badge ru-${d.ru.s}">${RU[d.ru.s]}</span><span class="dc">${tx(d.cls)}</span><span class="dk">${tx(d.key)}</span></summary><div class="dbody">${drugBody(d)}</div></details>`).join("")
     : `<p class="muted">Ничего не найдено. Попробуйте другое слово — например, «нейропатия» или «месна».</p>`;
 }
 function openDrug(id){
@@ -643,8 +811,8 @@ function quizQ(){
   app.innerHTML = `<section class="blitz">
     <div class="blitz-top"><span class="eyebrow">Тест по препаратам</span><span class="count">${Q.i + 1} / ${Q.qs.length} · верно ${Q.score}</span></div>
     <div class="progress"><i style="width:${Q.i / Q.qs.length * 100}%"></i></div>
-    <article class="card situation"><p>${esc(it.q)}</p></article>
-    <div class="opts">${it.opts.map((o, i) => `<button class="opt" data-qa="${i}">${esc(o.t)}</button>`).join("")}</div>
+    <article class="card situation"><p>${tx(it.q)}</p></article>
+    <div class="opts">${it.opts.map((o, i) => `<button class="opt" data-qa="${i}">${tx(o.t)}</button>`).join("")}</div>
     <div id="qfb"></div></section>`;
 }
 function quizAnswer(i){
@@ -653,7 +821,7 @@ function quizAnswer(i){
   if (o.ok) Q.score++; else logErr(`Тест: ${it.q} — верно «${it.opts.find(x => x.ok).t}»`);
   document.querySelectorAll("[data-qa]").forEach(b => { b.disabled = true; if (+b.dataset.qa === i) b.setAttribute("aria-pressed", "true"); });
   document.getElementById("qfb").innerHTML = `<div class="card"><span class="pill ${o.ok ? "ok" : "bad"}">${o.ok ? "Верно" : "Неверно"}</span>
-    ${o.ok ? "" : `<p><b>Правильно:</b> ${esc(it.opts.find(x => x.ok).t)}</p>`}
+    ${o.ok ? "" : `<p><b>Правильно:</b> ${tx(it.opts.find(x => x.ok).t)}</p>`}
     <details open><summary>${esc(it.d.n)} — карточка</summary><div class="dbody" style="padding:8px 0 0">${drugBody(it.d)}</div></details>
     <div class="dock-f" style="margin-top:12px"><button class="btn primary" id="qnext">${Q.i + 1 < Q.qs.length ? "Дальше →" : "Итоги"}</button></div></div>`;
   document.getElementById("qnext").focus();
@@ -663,6 +831,143 @@ function quizEnd(){
   app.innerHTML = `<section class="page-h"><p class="eyebrow">Тест по препаратам</p><h1>${Q.score} из ${Q.qs.length}</h1></section>
   <div class="row"><button class="btn primary" id="quizBtn">Ещё 10 вопросов</button><button class="btn" data-go="drugs">К справочнику</button></div>`;
   window.scrollTo(0, 0);
+}
+
+/* ---------- неотложка: мини-игра на время ----------
+   Сценарии — в emerg.js. Время игровое: с таймером идёт само (2 игровые секунды за 1 реальную)
+   и прибавляется за каждое действие; без таймера — только за действия и «Наблюдать». */
+const ER = window.EMERG || [];
+let E = null, eTimer = null;
+const mmss = t => { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); };
+function stopEmerg(){ if (eTimer) clearInterval(eTimer); eTimer = null; E = null; }
+function renderEmerg(){
+  setNav("emerg");
+  app.innerHTML = `<section class="page-h"><h1>Неотложка</h1>
+    <p class="lede">Состояние меняется на глазах. Решайте быстро: промедление и ошибки ведут в реанимацию или к остановке сердца. В конце — разбор по шкале времени и оценка по категориям.</p></section>
+    <div class="list">${ER.map(sc => { const b = S.emerg[sc.id]; return `<div class="card em-card"><div><b>${esc(sc.p.n)}, ${esc(sc.p.age)}</b><p class="muted">${tx(sc.teaser)}</p>${b ? `<p class="muted">лучший результат: ${b.best}%</p>` : ""}</div>
+      <div class="row"><button class="btn primary" data-em="${sc.id}" data-timed="1">С таймером</button><button class="btn" data-em="${sc.id}" data-timed="0">Без таймера</button></div></div>`; }).join("")}</div>
+    <p class="muted" style="margin-top:12px;font-size:13.5px">Без таймера время идёт только от ваших действий — для первого знакомства с алгоритмом.</p>`;
+}
+function startEmerg(id, timed){
+  stopEmerg();
+  C = null;
+  const sc = ER.find(x => x.id === id), p = sc.p;
+  E = {sc, timed, st:sc.start(), used:new Set()};
+  setNav("emerg");
+  tgBack(true);
+  app.innerHTML = `
+  <div class="band">
+    <div class="tag"><span class="eyebrow">Неотложка${timed ? "" : " · без таймера"}</span><b>${esc(p.n)}, ${esc(p.age)}</b></div>
+    <dl class="anthro"><div><dt>Вес</dt><dd>${comma(p.w)} кг</dd></div><div><dt>Рост</dt><dd>${p.h} см</dd></div></dl>
+    <div class="em-clock" id="eClock" aria-label="Игровое время">0:00</div>
+  </div>
+  <div class="mon" id="mon" role="group" aria-label="Монитор"></div>
+  <div class="chat" id="chat" aria-live="polite"></div>
+  <div class="dock" id="dock"></div>`;
+  document.getElementById("mon").style.top = document.querySelector(".top").offsetHeight + "px";
+  window.scrollTo(0, 0);
+  say("sys", sc.from);
+  emFlush();
+  emDraw();
+  emDock();
+  if (timed) eTimer = setInterval(() => { if (E && !E.st.end && !document.hidden) emAdvance(0.5); }, 250);
+}
+function emFlush(){
+  const st = E.st;
+  while (st.out.length){ const [w, t] = st.out.shift(); say(w, `<span class="tm">${mmss(st.t)}</span>${br(t)}`, true); }
+}
+function emDraw(){
+  const v = E.sc.vitals(E.st), k = E.sc.crit;
+  const cell = (n, val, unit, crit) => `<div class="mv${crit ? " crit" : ""}"><span>${n}</span><b>${val}</b><small>${unit}</small></div>`;
+  document.getElementById("mon").innerHTML =
+    cell("ЧСС", v.hr, v.rhythm || "уд/мин", v.hr >= k.hr || v.rhythm) +
+    cell("АД", `${v.sbp}/${v.dbp}`, "мм рт. ст.", v.sbp < k.sbp) +
+    cell("SpO₂", v.spo2, "%", v.spo2 < k.spo2) +
+    cell("ЧДД", v.rr, "в мин", v.rr >= k.rr);
+  document.getElementById("eClock").textContent = mmss(E.st.t);
+}
+function emAdvance(dt){
+  const st = E.st;
+  for (let x = 0; x < dt && !st.end; x += 0.5){ E.sc.tick(st, 0.5); st.t += 0.5; }
+  emFlush();
+  emDraw();
+  if (st.end) emFinish();
+}
+function emDock(){
+  const st = E.st;
+  const acts = E.sc.actions.map(a => {
+    const off = (a.once && E.used.has(a.id)) || (a.group === "pos" && st.pos);
+    return `<button class="opt" data-act="${a.id}" ${off ? "disabled" : ""}>${tx(a.label)}</button>`;
+  }).join("");
+  document.getElementById("dock").innerHTML = `
+    <div class="dock-h"><span>Действия</span><span class="muted">${E.timed ? "время идёт" : "время идёт только от действий"}</span></div>
+    <div class="acts">${acts}</div>
+    <div class="dock-f"><button class="btn" id="eWait">Наблюдать 30 с</button></div>`;
+}
+function emAskEpi(){
+  const sc = E.sc;
+  document.getElementById("dock").innerHTML = `
+    <div class="dock-h"><span>Адреналин · ампула 0,1% = 1 мг/мл</span><span class="muted">вес ${comma(sc.p.w)} кг</span></div>
+    <div class="chips" id="eRoute">${sc.epiRoutes.map(([k, l], i) => `<button class="chip" data-route="${k}" aria-pressed="${i === 0}">${esc(l)}</button>`).join("")}</div>
+    <label class="em-dose">Доза, мг <input id="eDose" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off"></label>
+    <div class="dock-f"><button class="btn" id="eCancel">Отмена</button><button class="btn primary" id="eGive">Ввести</button></div>`;
+  document.getElementById("eDose").focus();
+}
+function emGive(){
+  const inp = document.getElementById("eDose"), mg = parseFloat(String(inp.value).replace(",", "."));
+  if (!(mg > 0) || mg > 50){ inp.value = ""; inp.classList.add("bad"); inp.placeholder = "доза в мг"; inp.focus(); return; }
+  emAct("epi", {mg, route:document.querySelector('#eRoute [aria-pressed="true"]').dataset.route});
+}
+function emAct(id, arg){
+  const a = E.sc.actions.find(x => x.id === id);
+  if (a.ask && !arg) return emAskEpi();
+  E.used.add(id);
+  const n = E.st.events.length;
+  E.sc.act(E.st, id, arg);
+  if (E.st.events.slice(n).some(e => e.mark === "bad")) buzz(false);
+  emAdvance(a.cost);
+  if (E && !E.st.end) emDock();
+}
+function emFinish(){
+  if (eTimer){ clearInterval(eTimer); eTimer = null; }
+  const sc = E.sc, st = E.st, r = sc.score(st);
+  const rec = S.emerg[sc.id] || {best:0, plays:0};
+  S.emerg[sc.id] = {best:Math.max(rec.best, r.total), plays:rec.plays + 1, last:r.total};
+  save();
+  st.events.filter(e => e.mark === "bad").forEach(e => logErr(`Неотложка · ${sc.p.n}: ${e.text}${e.note ? " — " + e.note : ""}`));
+  buzz(st.end === "ok");
+  const MK = {ok:["ok","✓"], warn:["warn","!"], bad:["bad","✗"], mid:["mid","·"]};
+  const outcome = {ok:"стабильна", icu:"реанимация", dead:"остановка"}[st.end];
+  say("report", `
+    <p class="eyebrow">Разбор неотложки</p>
+    <h2>${tx(sc.title)}</h2>
+    <div class="rep-k"><div><b>${r.total}%</b><span>результат</span></div><div><b>${mmss(st.t)}</b><span>игровое время</span></div><div><b>${outcome}</b><span>исход</span></div></div>
+    <h3>Оценка по категориям</h3>${catsHtml(r.cats)}
+    <h3>Ваши действия</h3>
+    <div class="tbl"><table><tbody>${st.events.map(e => `<tr><td><span class="tm">${mmss(e.t)}</span></td><td><span class="pill ${MK[e.mark][0]}">${MK[e.mark][1]}</span> ${tx(e.text)}${e.note ? `<div class="c">${tx(e.note)}</div>` : ""}</td></tr>`).join("") || `<tr><td></td><td>Действий не было.</td></tr>`}</tbody></table></div>
+    <h3>Как нужно было</h3>
+    <div class="tbl"><table><tbody>${sc.ideal.map(([t, x]) => `<tr><td><span class="tm">${tx(t)}</span></td><td>${tx(x)}</td></tr>`).join("")}</tbody></table></div>
+    <h3>Запомнить</h3><ul class="pearls">${sc.pearls.map(x => `<li>${tx(x)}</li>`).join("")}</ul>
+    <h3>Источники</h3><ol class="src">${sc.sources.map(x => `<li>${tx(x)}</li>`).join("")}</ol>`, true);
+  if (st.end === "dead") return emAgain();
+  ask("Что дальше", sc.post.q);
+  E.post = shuffle(sc.post.o);
+  document.getElementById("dock").innerHTML = `<div class="opts">${E.post.map((o, i) => `<button class="opt" data-eq="${i}">${tx(o[0])}</button>`).join("")}</div>`;
+}
+function emPost(i){
+  const o = E.post[i], right = E.post.find(x => x[1]);
+  say("you", o[0]);
+  buzz(o[1]);
+  if (!o[1]) logErr(`Неотложка · ${E.sc.post.q} — верно «${right[0]}»`);
+  say("boss", `<span class="pill ${o[1] ? "ok" : "bad"}">${o[1] ? "Верно" : "Неверно"}</span><p>${br(o[2])}</p>${o[1] ? "" : `<p><b>Правильно:</b> ${tx(right[0])}</p><p>${br(right[2])}</p>`}`, true);
+  emAgain();
+}
+function emAgain(){
+  document.getElementById("dock").innerHTML = `<div class="dock-f"><button class="btn" data-go="emerg">К списку</button><button class="btn primary" data-em="${E.sc.id}" data-timed="${E.timed ? 1 : 0}">Ещё раз</button></div>`;
+}
+/* полоски оценки по категориям: [[название, 0–100, вес], …] */
+function catsHtml(cats){
+  return `<div class="cats">${cats.map(([n, v]) => `<div class="cat"><span>${esc(n)}</span><span class="cbar" role="img" aria-label="${esc(n)}: ${v} из 100"><i style="width:${v}%"></i></span><b>${v}</b></div>`).join("")}</div>`;
 }
 
 /* ---------- прогресс ---------- */
@@ -676,9 +981,11 @@ function renderProgress(){
     <div class="stat"><b>${avg}%</b><span>средний лучший результат</span></div>
     <div class="stat"><b>${S.blitz.best}/15</b><span>лучший раунд «Лечить или нет»</span></div>
     <div class="stat"><b>${S.quiz.best}/10</b><span>лучший тест по препаратам</span></div>
+    <div class="stat"><b>${Math.max(0, ...Object.values(S.emerg).map(x => x.best))}%</b><span>лучшая неотложка</span></div>
   </div>
+  ${Object.keys(S.cats).length ? `<h3 class="grp eyebrow">Сильные и слабые стороны — среднее по всем случаям</h3>${catsHtml(CATS.filter(n => S.cats[n]).map(n => [n, Math.round(S.cats[n].sum / S.cats[n].n), 1]))}` : ""}
   <h3 class="grp eyebrow">Слабые места — пройдите ещё раз</h3>
-  <div class="list">${done.filter(c => S.cases[c.id].best < 80).sort((a, b) => S.cases[a.id].best - S.cases[b.id].best).map(c => `<button class="case-row" data-case="${c.id}"><span class="cn">${esc(c.p.n)}, ${esc(c.p.age)}</span><span class="cc">${esc(c.dx)}</span><span class="cs">${S.cases[c.id].best}%</span></button>`).join("") || `<p class="muted">Пока нет случаев с результатом ниже 80%.</p>`}</div>
+  <div class="list">${done.filter(c => S.cases[c.id].best < 80).sort((a, b) => S.cases[a.id].best - S.cases[b.id].best).map(c => `<button class="case-row" data-case="${c.id}"><span class="cn">${esc(c.p.n)}, ${esc(c.p.age)}</span><span class="cc">${tx(c.dx)}</span><span class="cs">${S.cases[c.id].best}%</span></button>`).join("") || `<p class="muted">Пока нет случаев с результатом ниже 80%.</p>`}</div>
   <h3 class="grp eyebrow">Последние ошибки</h3>
   <div class="list">${S.errors.slice(0, 20).map(e => `<div class="err">${esc(e.t)}</div>`).join("") || `<p class="muted">Ошибок пока нет.</p>`}</div>
   <div class="row" style="margin-top:20px" id="resetRow"><button class="btn" id="reset">Сбросить прогресс</button></div>`;
@@ -692,6 +999,14 @@ document.addEventListener("click", e => {
   const ds = t.dataset;
   if (ds.go) return go(ds.go);
   if (ds.drug) return openDrug(ds.drug);
+  if (ds.em) return startEmerg(ds.em, ds.timed === "1");
+  if (ds.act) return emAct(ds.act);
+  if (ds.route){ document.querySelectorAll("#eRoute .chip").forEach(b => b.setAttribute("aria-pressed", b === t)); return; }
+  if (ds.eq !== undefined) return emPost(+ds.eq);
+  if (ds.hq !== undefined) return askHx(+ds.hq);
+  if (ds.hw){ C.hx.who = ds.hw; return dockHx(); }
+  if (ds.hg){ C.hx.g = ds.hg; return dockHx(); }
+  if (ds.tk !== undefined) return answerTalk(+ds.tk);
   if (ds.case) return startCase(CS.find(c => c.id === ds.case), null);
   if (ds.cat){ homeCat = ds.cat; document.querySelectorAll("#cats .chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.cat === homeCat)); return; }
   if (ds.g){ C.group = ds.g; return dockWorkup(); }
@@ -715,14 +1030,58 @@ document.addEventListener("click", e => {
     case "quizBtn": return startQuiz();
     case "qnext": Q.i++; return Q.i < Q.qs.length ? quizQ() : quizEnd();
     case "mclose": return closeModal();
+    case "eWait": return emAdvance(30);
+    case "eCancel": return emDock();
+    case "eGive": return emGive();
+    case "hxAsk": return askFree();
+    case "hxDone": say("you", "Достаточно, перехожу к осмотру."); return examine();
+    case "tkNext": return talkTurn();
     case "reset":
       document.getElementById("resetRow").innerHTML = `<span class="muted">Удалить весь прогресс?</span><button class="btn" id="resetYes">Да, удалить</button><button class="btn" data-go="progress">Отмена</button>`;
       return;
     case "resetYes": S = fresh(); save(); return renderProgress();
   }
 });
+const tip = document.createElement("div");
+tip.className = "abtip";
+tip.setAttribute("role", "tooltip");
+tip.hidden = true;
+document.body.appendChild(tip);
+let holdT = null, holdXY = null, eatClick = false;
+function showTip(a){
+  tip.innerHTML = `<b>${esc(a.textContent)}</b>${esc(a.title)}`;
+  tip.hidden = false;
+  const r = a.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+  const y = r.top - h - 8 < 8 ? r.bottom + 8 : r.top - h - 8;
+  tip.style.left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8) + "px";
+  tip.style.top = y + "px";
+}
+const hideTip = () => { tip.hidden = true; };
+const stopHold = () => { clearTimeout(holdT); holdT = null; };
+document.addEventListener("pointerdown", e => {
+  const a = e.target.closest && e.target.closest("abbr.ab");
+  hideTip();
+  if (!a || !a.closest("button, summary")) return;
+  holdXY = [e.clientX, e.clientY];
+  holdT = setTimeout(() => { showTip(a); eatClick = true; }, 450);
+});
+document.addEventListener("pointermove", e => { if (holdT && Math.hypot(e.clientX - holdXY[0], e.clientY - holdXY[1]) > 10) stopHold(); });
+document.addEventListener("pointerup", stopHold);
+document.addEventListener("pointercancel", stopHold);
+document.addEventListener("contextmenu", e => { if (e.target.closest && e.target.closest("abbr.ab")) e.preventDefault(); });
+document.addEventListener("click", e => {
+  if (eatClick){ eatClick = false; e.preventDefault(); e.stopPropagation(); return; }
+  const a = e.target.closest("abbr.ab");
+  if (a && !a.closest("button, summary")){ e.stopPropagation(); showTip(a); }
+}, true);
+window.addEventListener("scroll", hideTip, {passive:true});
+
 document.addEventListener("input", e => { if (e.target.id === "dq"){ dFilter.q = e.target.value; drugList(); } });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !modal.hidden) closeModal(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !modal.hidden) closeModal();
+  if (e.key === "Enter" && e.target.id === "eDose") emGive();
+  if (e.key === "Enter" && e.target.id === "hxIn") askFree();
+});
 
 const start = (location.hash || "").slice(1);
 go(VIEWS[start] ? start : "smena");
