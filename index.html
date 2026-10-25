@@ -389,7 +389,7 @@ const WHO = {scan:"", nurse:"Медсестра", mom:"Мама", dad:"Папа"
 const VERD = {need:["ok","Нужно"], ok:["mid","Уместно"], no:["warn","Лишнее"], harm:["bad","Опасно"], miss:["bad","Пропущено"], whom:["warn","Не тот собеседник"]};
 
 /* ---------- навигация ---------- */
-let C = null, B = null, Q = null, homeCat = "Все", dFilter = {q:"", g:"all"};
+let C = null, B = null, Q = null, SH = null, homeCat = "Все", dFilter = {q:"", g:"all"};
 const VIEWS = {smena:renderHome, patients:renderList, blitz:startBlitz, emerg:renderEmerg, drugs:renderDrugs, progress:renderProgress};
 function go(v){
   C = null;
@@ -412,7 +412,7 @@ function renderHome(){
     <span class="clock" aria-hidden="true">${hh}:${mm} · пост №2</span>
     <p class="eyebrow">Детская онкология и гематология</p>
     <h1>Ночная смена.<br><em>Пять пациентов.</em></h1>
-    <p class="lede">Вы дежурите в детском онкологическом отделении. Осматривайте поступающих, назначайте обследования, ставьте диагноз и выбирайте лечение — протокол, препараты, профилактику осложнений. После каждого решения заведующая разбирает ваш выбор.</p>
+    <p class="lede">Вы дежурите в детском онкологическом отделении. Осматривайте поступающих, назначайте обследования, ставьте диагноз и выбирайте лечение — протокол, препараты, профилактику осложнений. После каждого решения заведующая разбирает ваш выбор. А между пациентами может случиться срочный вызов — тогда счёт идёт на минуты.</p>
     <div class="field"><span class="lbl">Профиль смены</span>
       <div class="chips" id="cats">${cats.map(c => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${c === homeCat}">${esc(c)}</button>`).join("")}</div>
     </div>
@@ -429,11 +429,23 @@ function renderHome(){
     <p>Регистрация препаратов в РФ сверена по справочнику Видаль (октябрь 2026). Незарегистрированные препараты помечены, к ним указана замена.</p>
   </aside>`;
 }
+/* смена: пациенты по очереди, а между ними — срочный вызов (одна неотложка, иногда две; не первым).
+   SH.list — [{cs} | {em:id сценария}], SH.results — итоги по порядку. */
 function startShift(){
   const pool = CS.filter(c => homeCat === "Все" || c.cat === homeCat);
-  const list = shuffle(pool).slice(0, Math.min(5, pool.length));
-  startCase(list[0], {list, i:0, results:[]});
+  const list = shuffle(pool).slice(0, Math.min(5, pool.length)).map(cs => ({cs}));
+  const names = list.map(it => it.cs.p.n);
+  const ems = shuffle(ER.filter(sc => !names.includes(sc.p.n))).slice(0, list.length >= 4 && Math.random() < 0.35 ? 2 : 1);
+  ems.forEach(sc => list.splice(1 + Math.floor(Math.random() * Math.max(1, list.length - 1)), 0, {em:sc.id}));
+  SH = {list, i:0, results:[]};
+  startCase(list[0].cs, SH);
 }
+function shiftNext(){
+  SH.i++;
+  const it = SH.list[SH.i];
+  return it.em ? startEmerg(it.em, true, SH) : startCase(it.cs, SH);
+}
+const shiftButton = sh => sh.i + 1 < sh.list.length ? `<button class="btn primary" id="nextPatient">${sh.list[sh.i + 1].em ? "Дальше по смене →" : "Следующий пациент →"}</button>` : `<button class="btn primary" id="shiftReport">Сдать смену</button>`;
 
 /* ---------- случай ---------- */
 function startCase(cs, shift){
@@ -770,7 +782,7 @@ function finishCase(){
   const cats = caseCats(hxr);
   cats.forEach(([n, v]) => { const a = S.cats[n] || {sum:0, n:0}; S.cats[n] = {sum:a.sum + v, n:a.n + 1}; });
   save();
-  if (C.shift) C.shift.results.push({cs, pct, status:C.status, outcome, cats});
+  if (C.shift) C.shift.results.push({kind:"case", id:cs.id, p:cs.p, dx:cs.dx, pct, status:C.status, outcome, cats});
   const rows = C.ordered.map(i => C.tests[i]).map(t => [t[3], t]).concat(missed.map(t => ["miss", t]));
   const html = `
     <p class="eyebrow">Разбор случая</p>
@@ -788,7 +800,7 @@ function finishCase(){
   say("report", html, true);
   const sh = C.shift;
   document.getElementById("dock").innerHTML = `<div class="dock-f">${
-    sh ? (sh.i + 1 < sh.list.length ? `<button class="btn primary" id="nextPatient">Следующий пациент →</button>` : `<button class="btn primary" id="shiftReport">Сдать смену</button>`)
+    sh ? shiftButton(sh)
        : `<button class="btn" data-go="patients">К списку</button><button class="btn primary" id="randomCase">Случайный пациент</button>`}</div>`;
 }
 /* оценка случая по категориям, 0–100 */
@@ -818,9 +830,9 @@ function shiftReport(sh){
   app.innerHTML = `
   <section class="page-h"><p class="eyebrow">Смена сдана</p><h1>Средний результат — ${avg}%</h1>
   <p class="lede">${avg >= 80 ? "Сильная смена: дети стабильны, назначения точные." : avg >= 55 ? "Неплохо, но есть пробелы — посмотрите разборы и ошибки в «Прогрессе»." : "Тяжёлая смена. Вернитесь к разборам и к справочнику препаратов."}</p></section>
-  <h3 class="grp eyebrow">По категориям</h3>${catsHtml(avgCats(sh.results.map(r => r.cats)))}
+  <h3 class="grp eyebrow">По категориям</h3>${catsHtml(avgCats(sh.results.filter(r => r.kind === "case").map(r => r.cats)))}
   <h3 class="grp eyebrow">Пациенты смены</h3>
-  <div class="list">${sh.results.map(r => `<button class="case-row" data-case="${r.cs.id}">${face(r.cs.p, 40)}<span class="cn">${esc(r.cs.p.n)}, ${esc(r.cs.p.age)}</span><span class="cc">${tx(r.cs.dx)}</span><span class="cd">исход: ${r.outcome} · состояние ${r.status}</span><span class="cs">${r.pct}%</span></button>`).join("")}</div>
+  <div class="list">${sh.results.map(r => `<button class="case-row" ${r.kind === "em" ? `data-em="${r.id}" data-timed="1"` : `data-case="${r.id}"`}>${face(r.p, 40)}<span class="cn">${esc(r.p.n)}, ${esc(r.p.age)}</span><span class="cc">${tx(r.dx)}</span><span class="cd">${r.kind === "em" ? `неотложка · исход: ${r.outcome}` : `исход: ${r.outcome} · состояние ${r.status}`}</span><span class="cs">${r.pct}%</span></button>`).join("")}</div>
   <div class="row" style="margin-top:16px"><button class="btn primary" id="startShift">Новая смена</button><button class="btn" data-go="progress">Мои ошибки</button></div>`;
   window.scrollTo(0, 0);
 }
@@ -969,16 +981,16 @@ function renderEmerg(){
       <div class="row"><button class="btn primary" data-em="${sc.id}" data-timed="1">С таймером</button><button class="btn" data-em="${sc.id}" data-timed="0">Без таймера</button></div></div>`; }).join("")}</div>
     <p class="muted" style="margin-top:12px;font-size:13.5px">Без таймера время идёт только от ваших действий — для первого знакомства с алгоритмом.</p>`;
 }
-function startEmerg(id, timed){
+function startEmerg(id, timed, shift){
   stopEmerg();
   C = null;
   const sc = ER.find(x => x.id === id), p = sc.p;
-  E = {sc, timed, st:sc.start(), used:new Set()};
-  setNav("emerg");
+  E = {sc, timed, st:sc.start(), used:new Set(), shift:shift || null};
+  setNav(shift ? "smena" : "emerg");
   tgBack(true);
   app.innerHTML = `
   <div class="band">
-    ${face(p, 52)}<div class="tag"><span class="eyebrow">Неотложка${timed ? "" : " · без таймера"}</span><b>${esc(p.n)}, ${esc(p.age)}</b></div>
+    ${face(p, 52)}<div class="tag"><span class="eyebrow">${shift ? `Срочный вызов · ${shift.i + 1} из ${shift.list.length}` : `Неотложка${timed ? "" : " · без таймера"}`}</span><b>${esc(p.n)}, ${esc(p.age)}</b></div>
     <dl class="anthro"><div><dt>Вес</dt><dd>${comma(p.w)} кг</dd></div><div><dt>Рост</dt><dd>${p.h} см</dd></div></dl>
     <div class="em-clock" id="eClock" aria-label="Игровое время">0:00</div>
   </div>
@@ -987,6 +999,7 @@ function startEmerg(id, timed){
   <div class="dock" id="dock"></div>`;
   document.getElementById("mon").style.top = document.querySelector(".top").offsetHeight + "px";
   window.scrollTo(0, 0);
+  if (shift) say("sys", "Посреди смены — крик из соседней палаты. Медсестра бежит к вам.");
   say("sys", sc.from);
   emFlush();
   emDraw();
@@ -1072,6 +1085,7 @@ function emFinish(){
   buzz(st.end === "ok");
   const MK = {ok:["ok","✓"], warn:["warn","!"], bad:["bad","✗"], mid:["mid","·"]};
   const outcome = {ok:"стабильна", icu:"реанимация", dead:"остановка"}[st.end];
+  if (E.shift) E.shift.results.push({kind:"em", id:sc.id, p:sc.p, dx:sc.title, pct:r.total, outcome});
   say("report", `
     <p class="eyebrow">Разбор неотложки</p>
     <h2>${tx(sc.title)}</h2>
@@ -1097,6 +1111,7 @@ function emPost(i){
   emAgain();
 }
 function emAgain(){
+  if (E.shift) return document.getElementById("dock").innerHTML = `<div class="dock-f">${shiftButton(E.shift)}</div>`;
   document.getElementById("dock").innerHTML = `<div class="dock-f"><button class="btn" data-go="emerg">К списку</button><button class="btn primary" data-em="${E.sc.id}" data-timed="${E.timed ? 1 : 0}">Ещё раз</button></div>`;
 }
 /* полоски оценки по категориям: [[название, 0–100, вес], …] */
@@ -1157,8 +1172,8 @@ document.addEventListener("click", e => {
     case "toSteps": say("you", "Обследования достаточно."); return nextStep();
     case "nextStep": return nextStep();
     case "confirmMulti": return answerMulti();
-    case "nextPatient": { const sh = C.shift; sh.i++; return startCase(sh.list[sh.i], sh); }
-    case "shiftReport": return shiftReport(C.shift);
+    case "nextPatient": return shiftNext();
+    case "shiftReport": return shiftReport(SH);
     case "randomCase": return startCase(pick(CS), null);
     case "bnext": B.i++; return B.i < B.items.length ? blitzQ() : blitzEnd();
     case "bagain": return startBlitz();
