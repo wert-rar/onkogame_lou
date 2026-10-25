@@ -435,7 +435,11 @@ function startShift(){
   const pool = CS.filter(c => homeCat === "Все" || c.cat === homeCat);
   const list = shuffle(pool).slice(0, Math.min(5, pool.length)).map(cs => ({cs}));
   const names = list.map(it => it.cs.p.n);
-  const ems = shuffle(ER.filter(sc => !names.includes(sc.p.n))).slice(0, list.length >= 4 && Math.random() < 0.35 ? 2 : 1);
+  // срочный вызов — примерно раз в две-три смены: с вероятностью 25%, а на третьей смене подряд без вызова — обязательно
+  const since = S.shiftsNoEm || 0, want = since >= 2 || Math.random() < 0.25;
+  const ems = want ? shuffle(ER.filter(sc => !names.includes(sc.p.n))).slice(0, 1) : [];
+  S.shiftsNoEm = ems.length ? 0 : since + 1;
+  save();
   ems.forEach(sc => list.splice(1 + Math.floor(Math.random() * Math.max(1, list.length - 1)), 0, {em:sc.id}));
   SH = {list, i:0, results:[]};
   startCase(list[0].cs, SH);
@@ -971,7 +975,12 @@ function quizEnd(){
    и прибавляется за каждое действие; без таймера — только за действия и «Наблюдать». */
 const ER = window.EMERG || [];
 let E = null, eTimer = null;
-const mmss = t => { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); };
+/* время: на табло и в чате — время суток от начала сценария (sc.clock), в разборе — сколько прошло с начала */
+const wall = t => {
+  const [h, m] = (E.sc.clock || "00:00").split(":").map(Number), x = (h * 3600 + m * 60 + Math.floor(t)) % 86400, p2 = v => String(v).padStart(2, "0");
+  return p2(Math.floor(x / 3600)) + ":" + p2(Math.floor(x / 60) % 60) + ((E.sc.speed || 2) <= 2 ? ":" + p2(x % 60) : "");
+};
+const durLabel = t => { t = Math.max(0, Math.floor(t)); const m = Math.floor(t / 60), sec = t % 60; return t < 60 ? `${sec} с` : m < 10 && sec ? `${m} мин ${sec} с` : `${m} мин`; };
 function stopEmerg(){ if (eTimer) clearInterval(eTimer); eTimer = null; E = null; }
 function renderEmerg(){
   setNav("emerg");
@@ -992,7 +1001,7 @@ function startEmerg(id, timed, shift){
   <div class="band">
     ${face(p, 52)}<div class="tag"><span class="eyebrow">${shift ? `Срочный вызов · ${shift.i + 1} из ${shift.list.length}` : `Неотложка${timed ? "" : " · без таймера"}`}</span><b>${esc(p.n)}, ${esc(p.age)}</b></div>
     <dl class="anthro"><div><dt>Вес</dt><dd>${comma(p.w)} кг</dd></div><div><dt>Рост</dt><dd>${p.h} см</dd></div></dl>
-    <div class="em-clock" id="eClock" aria-label="Игровое время">0:00</div>
+    <div class="em-clock" id="eClock" aria-label="Время">${wall(0)}</div>
   </div>
   <div class="mon" id="mon" role="group" aria-label="Монитор"></div>
   <div class="chat" id="chat" aria-live="polite"></div>
@@ -1008,14 +1017,14 @@ function startEmerg(id, timed, shift){
 }
 function emFlush(){
   const st = E.st;
-  while (st.out.length){ const [w, t] = st.out.shift(); say(w, `<span class="tm">${mmss(st.t)}</span>${br(t)}`, true); }
+  while (st.out.length){ const [w, t] = st.out.shift(); say(w, `<span class="tm">${wall(st.t)}</span>${br(t)}`, true); }
 }
 function emDraw(){
   const cell = (n, val, unit, crit) => `<div class="mv${crit ? " crit" : ""}"><span>${n}</span><b>${val}</b><small>${unit}</small></div>`;
   // сценарий может задать свои показатели монитора: cells(st) → [{n, val, unit, crit}]
   if (E.sc.cells){
     document.getElementById("mon").innerHTML = E.sc.cells(E.st).map(c => cell(c.n, c.val, c.unit, c.crit)).join("");
-    document.getElementById("eClock").textContent = mmss(E.st.t);
+    document.getElementById("eClock").textContent = wall(E.st.t);
     return;
   }
   const v = E.sc.vitals(E.st), k = E.sc.crit;
@@ -1024,7 +1033,7 @@ function emDraw(){
     cell("АД", `${v.sbp}/${v.dbp}`, "мм рт. ст.", v.sbp < k.sbp) +
     cell("SpO₂", v.spo2, "%", v.spo2 < k.spo2) +
     cell("ЧДД", v.rr, "в мин", v.rr >= k.rr);
-  document.getElementById("eClock").textContent = mmss(E.st.t);
+  document.getElementById("eClock").textContent = wall(E.st.t);
 }
 function emAdvance(dt){
   const st = E.st;
@@ -1089,10 +1098,10 @@ function emFinish(){
   say("report", `
     <p class="eyebrow">Разбор неотложки</p>
     <h2>${tx(sc.title)}</h2>
-    <div class="rep-k"><div><b>${r.total}%</b><span>результат</span></div><div><b>${mmss(st.t)}</b><span>игровое время</span></div><div><b>${outcome}</b><span>исход</span></div></div>
+    <div class="rep-k"><div><b>${r.total}%</b><span>результат</span></div><div><b>${durLabel(st.t)}</b><span>длительность</span></div><div><b>${outcome}</b><span>исход</span></div></div>
     <h3>Оценка по категориям</h3>${catsHtml(r.cats)}
     <h3>Ваши действия</h3>
-    <div class="tbl"><table><tbody>${st.events.map(e => `<tr><td><span class="tm">${mmss(e.t)}</span></td><td><span class="pill ${MK[e.mark][0]}">${MK[e.mark][1]}</span> ${tx(e.text)}${e.note ? `<div class="c">${tx(e.note)}</div>` : ""}</td></tr>`).join("") || `<tr><td></td><td>Действий не было.</td></tr>`}</tbody></table></div>
+    <div class="tbl"><table><tbody>${st.events.map(e => `<tr><td><span class="tm">+${durLabel(e.t)}</span></td><td><span class="pill ${MK[e.mark][0]}">${MK[e.mark][1]}</span> ${tx(e.text)}${e.note ? `<div class="c">${tx(e.note)}</div>` : ""}</td></tr>`).join("") || `<tr><td></td><td>Действий не было.</td></tr>`}</tbody></table></div>
     <h3>Как нужно было</h3>
     <div class="tbl"><table><tbody>${sc.ideal.map(([t, x]) => `<tr><td><span class="tm">${tx(t)}</span></td><td>${tx(x)}</td></tr>`).join("")}</tbody></table></div>
     <h3>Запомнить</h3><ul class="pearls">${sc.pearls.map(x => `<li>${tx(x)}</li>`).join("")}</ul>
